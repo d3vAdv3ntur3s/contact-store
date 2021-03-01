@@ -1,0 +1,17 @@
+apiVersion: skaffold/v2beta11
+kind: Config
+metadata:
+  name: contact-store
+build:
+  artifacts:
+  - image: contact-store
+    buildpacks:
+      builder: gcr.io/buildpacks/builder:v1
+deploy:
+  kubectl:
+    manifests:
+    - k8s/ConfigMap.yaml
+    - k8s/Deployment.yaml
+    - k8s/Ingress.yaml
+    - k8s/Secret.yaml
+    - k8s/Service.yaml

@@ -1,0 +1,63 @@
+//TODO Convert to use R2DBC DatabaseClient
+configurations {
+    liquibaseRuntime
+}
+
+buildscript {
+    repositories {
+        mavenCentral()
+    }
+
+    dependencies {
+        classpath 'org.yaml:snakeyaml:1.23'
+    }
+}
+
+dependencies {
+    liquibaseRuntime 'org.liquibase.ext:liquibase-hibernate5:3.8'
+    liquibaseRuntime 'org.postgresql:postgresql:42.2.8'
+}
+
+static def buildTimestamp() {
+    def date = new Date()
+    def formattedDate = date.format('yyyyMMddHHmmss')
+    return formattedDate
+}
+
+def changeLog = "$projectDir/src/main/resources/db/changelog/changes/" + buildTimestamp() + "_changelog.yaml"
+def modelPackage = "dev.cloudetive.k8s.contact.store.model"
+def dialect = "org.hibernate.dialect.PostgreSQL9Dialect"
+def driver = "org.postgresql.Driver"
+
+import org.yaml.snakeyaml.Yaml
+task diffLocalPgSQL(type: JavaExec) {
+    group = "Helper"
+    description "Generates a diff from local PostgresSQL database against modified model classes"
+
+    classpath sourceSets.main.runtimeClasspath
+    classpath configurations.liquibaseRuntime
+    main = "liquibase.integration.commandline.Main"
+
+    Yaml yaml = new Yaml();
+    FileInputStream fis = new FileInputStream("$project.projectDir/src/main/resources/application-local.yaml");
+    Map<String, Object> result = (Map<String, Object>) yaml.load(fis)
+
+    args "--changeLogFile=" + changeLog
+    args "--referenceUrl=hibernate:spring:" + modelPackage + "?dialect=" + dialect
+    args "--username=" + result['spring']['datasource']['username']
+    args "--password=" + result['spring']['datasource']['password']
+    args "--url=" + result['spring']['datasource']['url']
+    args "--driver=" + driver
+    args "diffChangeLog"
+}
+
+/**
+ * Helper task to initialise the database for first use
+ * Creating the DB, User, inital config, extensions
+ */
+task initLocalPgSQL(type: Exec) {
+    group "Helper"
+    description "Initialises the PostgresSQL database for first use"
+    workingDir "$projectDir"
+    commandLine 'gradle/script/db_init.sh'
+}

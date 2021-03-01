@@ -1,0 +1,233 @@
+openapi: 3.0.3
+info:
+  title: Contact Store
+  description: |
+    This is an example application to remember your contact list. Built to demonstrate the capabilities of reactive
+    spring boot using gradle 6, open api spec and stub generation, postgres and db schema tooling (liquibase), HTTPS,
+    HTTP2, prometheus actuator with dynamic info endpoint, cloud native buildpack, skaffold for use with kuberentes
+  termsOfService: https://cloudnativedevs.com/terms
+  contact:
+    email: cloudnativedevs@github.com
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  version: 1.0.0
+externalDocs:
+  description: Find out more in the Dev Platform backstage
+  url: https://backstage.io/cloudnativedevs
+servers:
+- url: https://localhost:8443/v1
+  description: Development server
+- url: https://cloudnativedevs.com
+  description: Production server
+tags:
+- name: contact
+  description: Everything about your Contact
+  externalDocs:
+    description: Find out more
+    url: https://en.wikipedia.org/wiki/Contact_list
+paths:
+  /contacts:
+    get:
+      tags:
+      - contact
+      summary: List all contacts in contact store
+      description: Returns all contacts in the list
+      operationId: getAllContacts
+      parameters:
+        - $ref: '#/components/parameters/offsetParam'
+        - $ref: '#/components/parameters/limitParam'
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Contact'
+        404:
+          description: Contacts not found
+        default:
+          description: Unexpected error
+    post:
+      tags:
+        - contact
+      summary: Add a new contract to the contact store
+      operationId: addContact
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Contact'
+      responses:
+        201:
+          description: Created contact
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Contact'
+        400:
+          $ref: '#/components/responses/BadRequest'
+        404:
+          $ref: '#/components/responses/NotFound'
+        405:
+          $ref: '#/components/responses/MethodNotAllowed'
+        500:
+          $ref: '#/components/responses/ServerError'
+  /contacts/{contactId}:
+    parameters:
+      - name: contactId
+        in: path
+        required: true
+        description: 'ID number tied to a particular Contact'
+        schema:
+          type: string
+          format: uuid
+    get:
+      summary: Returns a user by ID.
+      operationId: getContactById
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Contact'
+        400:
+          $ref: '#/components/responses/BadRequest'
+        404:
+          $ref: '#/components/responses/NotFound'
+        405:
+          $ref: '#/components/responses/MethodNotAllowed'
+        500:
+          $ref: '#/components/responses/ServerError'
+    put:
+      tags:
+        - contact
+      summary: Update contact resource
+      operationId: updateContact
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Contact'
+      responses:
+        204:
+          description: Updated contact resource
+        400:
+          $ref: '#/components/responses/BadRequest'
+        404:
+          $ref: '#/components/responses/NotFound'
+        405:
+          $ref: '#/components/responses/MethodNotAllowed'
+        500:
+          $ref: '#/components/responses/ServerError'
+    delete:
+      tags:
+        - contact
+      summary: Delete contact resource
+      operationId: deleteContact
+      responses:
+        204:
+          description: Updated contact resource
+        400:
+          $ref: '#/components/responses/BadRequest'
+        404:
+          $ref: '#/components/responses/NotFound'
+        405:
+          $ref: '#/components/responses/MethodNotAllowed'
+        500:
+          $ref: '#/components/responses/ServerError'
+
+components:
+  schemas:
+    Contact:
+      type: object
+      properties:
+        firstName:
+          type: string
+          example: 'Joe'
+        lastName:
+          type: string
+          example: 'Blogs'
+        phoneNumber:
+          type: string
+          example: +44 999999999
+          pattern: '\+[0-9 ]+'
+    Error:
+      type: object
+      required:
+        - status
+        - message
+        - requestId
+        - timestamp
+      properties:
+        status:
+          type: integer
+          format: int32
+          example: 404
+        message:
+          type: string
+          nullable: true
+          example: 'Contact resource not found'
+        requestId:
+          type: string
+          example: '4c05da03-5'
+        timestamp:
+          type: string
+          format: date-time
+
+
+  responses:
+    NotFound:
+      description: The specified resource was not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    MethodNotAllowed:
+      description: The method used was not allowed
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    ServerError:
+      description: Server Error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    BadRequest:
+      description: Bad Request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Unauthorized:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+  parameters:
+    offsetParam:
+      in: query
+      name: offset
+      required: false
+      schema:
+        type: integer
+        minimum: 0
+      description: The number of items to skip before starting to collect the result set.
+    limitParam:
+      in: query
+      name: limit
+      required: false
+      schema:
+        type: integer
+        minimum: 20
+        maximum: 100
+        default: 20
+      description: The numbers of items to return.
+
+

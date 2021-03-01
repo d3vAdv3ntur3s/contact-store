@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: contactstore-service
+spec:
+  type: ClusterIP
+  selector:
+    app: contactstore
+  ports:
+  - port: 3000
+    targetPort: 8080

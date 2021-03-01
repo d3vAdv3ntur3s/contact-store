@@ -1,0 +1,50 @@
+server:
+  port: 8080
+  shutdown: graceful
+  http2:
+    enabled: true
+  error:
+    include-stacktrace: never
+#  server:
+#    ssl: #https://letsencrypt.org/docs/certificates-for-localhost/
+#      key-store-type: PKCS12 #format of the keystore
+#      key-store: classpath:localhost.p12 #path to the keystore containing the cert
+#      key-store-password: password123 #pw used to gen the cert
+#      key-alias: localhost #alias mapped to the certificate
+
+#refresh context for reloading configuration or bean proxies
+management:
+  endpoints:
+    web:
+      exposure:
+        include: refresh,info,health,prometheus
+#  server:
+#    port: 8080
+  endpoint:
+    health:
+      show-details: always
+
+spring:
+  main:
+    cloud-platform: kubernetes
+  # Graceful shutdown settings
+  lifecycle:
+    timeout-per-shutdown-phase: 10s
+  r2dbc:
+    url: \${SPRING_DATASOURCE_URL}
+    username: \${SPRING_DATASOURCE_USERNAME}
+    password: \${SPRING_DATASOURCE_PASSWORD}
+    testWhileIdle: true
+    validationQuery: SELECT 1
+  jpa:
+    show-sql: false
+    properties:
+      hibernate:
+        jdbc:
+          lob:
+            non_contextual_creation: true
+
+# disable api-docs
+springdoc:
+  api-docs:
+    enabled: false

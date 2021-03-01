@@ -1,0 +1,49 @@
+version: '3.8'
+services:
+  db:
+    container_name: contact_store_db
+    image: postgres:12
+    restart: always
+    environment:
+      POSTGRES_USER: contact_store
+      POSTGRES_PASSWORD: contact_store
+      POSTGRES_DB: contact_store
+    # volume pg_data - data remains after shutting down the container
+    volumes:
+      - ./gradle/script/:/docker-entrypoint-initdb.d/
+      - pg_data:/var/lib/postgresql/data/
+    ports:
+      - "5433:5432"
+    networks:
+      - backend
+    healthcheck:
+      test: pg_isready -U contact_store
+      interval: 1m
+      timeout: 15s
+      retries: 2
+
+  app:
+    image: contact-store:0.0.1
+    container_name: app
+    depends_on:
+      - db
+    environment:
+      - SPRING_PROFILES_ACTIVE=local
+      - SPRING_DATASOURCE_URL=r2dbc:pool:postgresql://db:5432/contact_store
+      - SPRING_DATASOURCE_USERNAME=contact_store
+      - SPRING_DATASOURCE_PASSWORD=contact_store
+      - JAVA_TOOL_OPTIONS=-agentlib:jdwp=transport=dt_socket,address=5005,server=y,suspend=n
+    #HTTP, HTTPS, DEBUG
+    ports:
+      - "8080:8080"
+      - "8443:8443"
+      - "5005:5005"
+    networks:
+      - backend
+
+volumes:
+  pg_data:
+
+networks:
+  backend:
+    driver: bridge

@@ -1,0 +1,5 @@
+databaseChangeLog:
+  - include:
+      file: ./changes/1.yaml
+      relativeToChangelogFile: true
+      errorIfMissingOrEmpty: false

@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: contactstore-deployment
+spec:
+  selector:
+    matchLabels:
+      app: contactstore
+  template:
+    metadata:
+      labels:
+        app: contactstore
+    spec:
+      containers:
+      - name: contactstore
+        image: contact-store:0.0.1
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "200m"
+          limits:
+            memory: "1024Mi"
+            cpu: "500m"
+        ports:
+        - containerPort: 8080
+        env:
+          - name: POSTGRES_DATABASE
+            valueFrom:
+              configMapKeyRef:
+                name: postgresdb
+                key: database-name
+          - name: POSTGRES_USERNAME
+            valueFrom:
+              secretKeyRef:
+                name: postgresdb
+                key: database-user
+          - name: POSTGRES_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: postgresdb
+                key: database-password

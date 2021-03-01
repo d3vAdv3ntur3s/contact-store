@@ -1,0 +1,80 @@
+## Override Properties from application.yml for local development
+server:
+  port: 8443
+  shutdown: graceful
+  http2:
+    enabled: false
+  error:
+    include-stacktrace: on_param
+  #See docs/SSL-Geneation.md
+  ssl:
+    enabled: true
+    #format of the keystore
+    key-store-type: PKCS12
+    #path to the keystore containing the cert
+    key-store: classpath:dev/keystore.p12
+    #pw used to gen the keystore
+    key-store-password: password
+    #alias mapped to the certificate inside the keystore
+    key-alias: localdev
+    #See: io.netty.handler.codec.http2.Http2SecurityUtil#CIPHERS_JAVA_MOZILLA_MODERN_SECURITY
+    ciphers: TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256, TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384, TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA, TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA, TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256, TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384, TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256, TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384, TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA, TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA, TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256, TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384, TLS_DHE_RSA_WITH_AES_128_GCM_SHA256, TLS_DHE_RSA_WITH_AES_256_GCM_SHA384, TLS_DHE_RSA_WITH_AES_128_CBC_SHA, TLS_DHE_RSA_WITH_AES_256_CBC_SHA, TLS_DHE_RSA_WITH_AES_128_CBC_SHA256, TLS_DHE_RSA_WITH_AES_256_CBC_SHA256
+    enabled-protocols: TLSv1.3
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: refresh,info,health,prometheus #refresh context for reloading configuration or bean proxies
+
+spring:
+  main:
+    cloud-platform: kubernetes
+  # Graceful shutdown settings
+  lifecycle:
+    timeout-per-shutdown-phase: 10s
+  r2dbc:
+    url: \${SPRING_DATASOURCE_URL:r2dbc:pool:postgresql://localhost:5432/contact_store?schema=contact_store}
+    username: \${SPRING_DATASOURCE_USERNAME:contact_store}
+    password: \${SPRING_DATASOURCE_PASSWORD:contact_store}
+    pool:
+      validation-query: SELECT 1
+  jpa:
+    show-sql: true
+    properties:
+      hibernate:
+        jdbc:
+          lob:
+            non_contextual_creation: true
+
+logging:
+  level:
+    org:
+      springframework:
+        web: debug
+        r2dbc: debug
+    reactor.netty: debug
+
+# Swagger configuration
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html # swagger-ui custom path
+  api-docs:
+    path: /v3/api-docs.yaml
+    enabled: true
+
+
+#info.*  - add random bits of info the actuator info endpoint
+info:
+  application:
+    name: "${name}"
+    description: "${description}"
+    version: "${version}"
+    javaVersion: "${javaVersion}"
+    profile: \${spring.profiles.active:default}
+
+reactor:
+  netty:
+    http:
+      server:
+        accessLogEnabled: true

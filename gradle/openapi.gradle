@@ -1,0 +1,37 @@
+// openapi code generator using open api 3 specification
+
+// This will generate the model, api (interfaces only)
+// Spring-boot Server application using the SpringFox integration.
+// Generator Docs: https://openapi-generator.tech/docs/generators/spring/
+// Gradle plugin: https://github.com/OpenAPITools/openapi-generator/tree/master/modules/openapi-generator-gradle-plugin
+// Gradle plugin example: https://github.com/OpenAPITools/openapi-generator/blob/master/modules/openapi-generator-gradle-plugin/samples/local-spec/build.gradle
+// https://wstutorial.com/rest/spring-boot-openapi-codegen.html
+// templatesDir is to override the generated output: purpose to override method signature: Mono<ResponseEntity<Flux<ContactDTO>>> to Flux<ContactDTO>
+// See Issue: https://github.com/OpenAPITools/openapi-generator/issues/1309
+openApiGenerate {
+    // don't try and reuse this variable for sourceSet as reference here is for a directory and generated code will append files to src/main/java under this directory
+    generatorName.set("spring")
+    library.set("spring-boot")
+    outputDir.set("${buildDir}/generated")
+    inputSpec.set("${projectDir}/oas/openapi-1.0.0.yaml")
+    //templateDir.set("$projectDir/oas/templates") //CURRENTLY TEMPLATE IS MALFORMED
+    modelPackage.set("dev.cloudnative.k8s.contact.store.dto")
+    apiPackage.set("dev.cloudnative.k8s.contact.store.controller.api")
+    modelNameSuffix.set("DTO")
+    configOptions.set([
+            dateLibrary: "java8",
+            skipDefaultInterface: "true",
+            interfaceOnly: "true",
+            reactive: "true"
+    ])
+    globalProperties.set([
+            models: "",
+            apis: "",
+    ])
+
+
+}
+compileJava.dependsOn tasks.openApiGenerate
+
+// additional source to java compile path
+sourceSets.main.java.srcDir(file("${buildDir}/generated/src/main/java"))

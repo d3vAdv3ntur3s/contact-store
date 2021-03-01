@@ -1,0 +1,30 @@
+databaseChangeLog:
+- changeSet:
+    id: 1571178913861-1
+    author: cloudnativesdev (generated)
+    changes:
+    - createTable:
+        columns:
+        - column:
+            constraints:
+              primaryKey: true
+              primaryKeyName: contactPK
+            name: id
+            type: UUID
+        - column:
+            name: first_name
+            type: VARCHAR(255)
+        - column:
+            name: last_name
+            type: VARCHAR(255)
+        - column:
+            name: phone_number
+            type: VARCHAR(255)
+        tableName: contact
+
+#    CREATE TABLE CONTACT(
+#    ID UUID PRIMARY KEY NOT NULL,
+#    first_name TEXT NOT NULL,
+#    last_name TEXT NOT NULL,
+#    phone_number TEXT NOT NULL
+#    );

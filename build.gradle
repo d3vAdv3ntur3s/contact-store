@@ -1,0 +1,134 @@
+plugins {
+    id 'org.springframework.boot' version '2.4.3'
+    id 'io.spring.dependency-management' version '1.0.11.RELEASE' //BOM dependency management and exclusions
+    id 'org.openapi.generator' version '5.0.1'
+    id 'java'
+    id 'maven-publish'
+    id "com.google.osdetector" version "1.7.0"
+}
+
+apply from: 'gradle/openapi.gradle'
+
+//Github Packaging - artifact generation
+//Layered JARs (application, resources, snapshots-dependencies, dependencies) by default >2.4
+publishing {
+    repositories {
+        maven {
+            name = "GitHubPackages"
+            url = uri("https://maven.pkg.github.com/raztiff/contact-store")
+            credentials {
+                username = project.findProperty("gpr.user") ?: System.getenv("USERNAME")
+                password = project.findProperty("gpr.key") ?: System.getenv("TOKEN")
+            }
+        }
+    }
+    publications {
+        gpr(MavenPublication) {
+            from(components.java)
+
+        }
+    }
+}
+
+// https://docs.spring.io/spring-boot/docs/current/reference/htmlsingle/#howto-automatic-expansion
+// Substitute properties from Gradle into (note: applies to files located: /src/main/resources/) application.[properties|yaml|yml] useful for info actuator, project version number, etc
+// Potential issues as SimpleTemplateEngine placeholders are the same as Spring property placeholders
+// Escape the Spring property placeholders as follows: \${..}
+// Use `./gradlew properties` to see all available properties in your project
+processResources {
+    filesMatching('application*.yaml') {
+        expand(
+            version: version,
+            name: rootProject.name,
+            description: project.description,
+            javaVersion: 11
+        )
+        //NOTE: you can expand all the properties instead via: expand(project.properties)
+    }
+}
+
+//Retrieve dependencies with special conditions
+repositories {
+    if (System.getenv("USE_LOCAL_MAVEN") == 'active') {
+        mavenLocal()
+    }
+    mavenCentral()
+    exclusiveContent {
+        forRepository {
+            maven {
+                url = uri("https://maven.pkg.github.com/raztiff")
+            }
+        }
+        filter {
+            // this repository *only* contains artifacts with group "my.company"
+            includeGroupByRegex("dev\\.cloudnative")
+        }
+    }
+}
+
+//sourceCompatibility no longer required
+//Auto run or retrieve Java version and vendor.
+java {
+    toolchain {
+        languageVersion.set(JavaLanguageVersion.of(11))
+        vendor = JvmVendorSpec.AZUL
+    }
+}
+
+//Junit 5 test runner, this can be configured with various different options in a closure e.g. includeTags 'fast' or excludeTags 'slow'
+test {
+    useJUnitPlatform()
+}
+
+//automatically import using dependency-management plugin the spring-boot-dependencies bom from the version of Spring Boot that you are using
+//Defaulted Versions: https://docs.spring.io/spring-boot/docs/current/reference/html/appendix-dependency-versions.html
+//See all via printing dependencyManagement.importedProperties or use like so: "${dependencyManagement.importedProperties['lombok.version']}"
+dependencies {
+    //https://docs.spring.io/spring-boot/docs/current/reference/html/appendix-configuration-metadata.html
+    developmentOnly 'org.springframework.boot:spring-boot-configuration-processor'
+    developmentOnly 'org.springframework.boot:spring-boot-devtools'
+
+    //Official Docs: https://docs.spring.io/spring-framework/docs/current/reference/html/core.html#beans-scanning-index
+    //Scan for annotations from runtime to build time produce a META-INF/spring.components file containing a list of all Spring components, entities and so on that are usually gathered through class path scanning
+    annotationProcessor "org.springframework:spring-context-indexer"
+    annotationProcessor "org.mapstruct:mapstruct-processor:$mapstructVersion"
+    annotationProcessor 'org.projectlombok:lombok'
+    annotationProcessor "org.projectlombok:lombok-mapstruct-binding:0.2.0"
+    compileOnly 'org.projectlombok:lombok'
+
+    //Liquibase db schema management tool, see src/main/resources/db
+    implementation 'org.liquibase:liquibase-core'
+    implementation 'org.springframework.boot:spring-boot-starter'
+    implementation 'org.springframework.boot:spring-boot-starter-data-r2dbc'
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    implementation "org.mapstruct:mapstruct:$mapstructVersion"
+    //WebClient Spring Boot: https://docs.spring.io/spring-boot/docs/current/reference/html/spring-boot-features.html#boot-features-webclient
+    implementation 'org.springframework.boot:spring-boot-starter-webflux'
+    //Open API (Swagger) useful alternate approach see: spring-rest-docs
+    implementation 'org.springdoc:springdoc-openapi-webflux-ui:1.5.4'
+
+    // openapi required deps for tool chain
+    implementation 'io.swagger:swagger-annotations:1.5.24' // e.g. ApiOperation, ApiResponse, ApiParam
+    compileOnly 'org.openapitools:jackson-databind-nullable:0.2.0' // e.g. JsonNullable
+    compileOnly "io.springfox:springfox-bean-validators:3.0.0" //JSR-303 Bean Validation - required for ApiIgnore and other annotations
+    // openapi
+
+    //HTTP2 Reactive Netty (auto-configured version via spring dependency BOM): https://github.com/netty/netty/wiki/Requirements-for-4.x#benefits-of-using-openssl
+    //Avoids large multi-platform dependency, using platform specific classifier e.g. linux-x86_64
+    runtimeOnly("io.netty:netty-tcnative-boringssl-static::${osdetector.classifier}")
+    runtimeOnly 'io.micrometer:micrometer-registry-prometheus'
+    runtimeOnly 'io.r2dbc:r2dbc-postgresql'
+    runtimeOnly 'org.postgresql:postgresql' //liquibase usage
+
+
+
+    testImplementation('org.springframework.boot:spring-boot-starter-test') {
+        exclude group: 'org.junit.vintage', module: 'junit-vintage-engine'
+    }
+    testImplementation 'org.junit.jupiter:junit-jupiter-api'
+    testImplementation 'io.projectreactor:reactor-test'
+    testImplementation 'org.hamcrest:hamcrest:2.2'
+    testRuntimeOnly 'com.h2database:h2'
+    testCompile "org.testcontainers:testcontainers:${testcontainersVersion}"
+    testCompile "org.testcontainers:junit-jupiter:${testcontainersVersion}"
+}
